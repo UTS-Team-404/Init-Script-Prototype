@@ -1,0 +1,1 @@
+This script will have an executable that will automatically update the rc.local file with the commands to automatically download updates from your github repo and make then run at launch (hopefully lmao)
