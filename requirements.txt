@@ -1,0 +1,9 @@
+scapy
+mysql-connector-python
+pandas
+reportlab
+pywebview[GTK]
+folium
+numpy
+flask
+matplotlib
