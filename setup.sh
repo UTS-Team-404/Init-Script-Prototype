@@ -147,7 +147,7 @@ APT_PACKAGES=(
     libwebkit2gtk-4.1-dev
     gir1.2-webkit2-4.1
     libopenblas-dev
-    mysql-server
+    mariadb-server
     aircrack-ng
     gpsd
     gpsd-clients
