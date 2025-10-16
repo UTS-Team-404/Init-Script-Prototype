@@ -78,6 +78,7 @@ echo "as root..."
 
 ###################################################################################
                                 #FIRST SETUP
+                                #Screen setup (will reboot)
 #clones screen setup to any current directory and then runs it. We only run this once so thats fine.
 echo "Install screen drivers and rotate? (y/n/c)"
 if yes; then
@@ -96,13 +97,14 @@ fi
 echo "###################################"
 echo "##### rc.local service check ######"
 echo "###################################"
+echo ""
+sleep 1
 
 echo "Are you using rc.local as autostart service? (y/n/c) (default yes)"
 if yes; then
     if [ ! -e /ect/rc.local ]; then
         echo "rc.local file not found. Check if rc-local.service is enabled:"
         sudo systemctl is-enabled rc-local.service
-        sudo systemctl status rc-local.service
         sudo echo "Adding rc.local..."
         sudo touch /etc/rc.local
         sudo sh -c 'echo "#!/bin/bash" > /etc/rc.local'
@@ -117,11 +119,54 @@ else
     read -s -n 1
 fi
 
+echo "###################################"
+echo "####### boot speed increase #######"
+echo "###################################"
+echo ""
+sleep 1
+                                #Stop unneeded task for quicker boot time
+echo "Need to disable slow and un-needed services? (first time only) (experimental) (y/n/c)"
+if yes; then
+    echo "fixing rpc.statd"
+    cp /lib/systemd/system/rpc-statd.service /etc/systemd/system/rpc-statd.service
+    sed -i '/\[Unit\]/a Requires=rpcbind.service\nAfter=rpcbind.service' /etc/systemd/system/rpc-statd.service
+    systemctl daemon-reload
+    systemctl restart rpc-statd.service
+    echo "fixed."
+    
+    echo "stopping rpi-eeprom-update"
+    sudo systemctl mask rpi-eeprom-update
 
+    echo "stopping bluetooth"
+    sudo echo "dtoverlay=disable-bt" >> /boot/config.txt
+    echo "killing bluetooth sercices"
+    sudo systemctl disable hciuart.service
+    sudo systemctl disable bluealsa.service
+    sudo systemctl disable bluetooth.service
+    sudo -e "all done\n\n"
+else
+    echo -e "skipping...\n\n"
+fi
+
+                                #Custom boot screen
+echo "###################################"
+echo "###### Replace boot screen #######"
+echo "###################################"
+echo ""
+sleep 1
+
+echo "Replace the boot and splash screen images with way cooler ones? (heck yea) (y/n/c)"
+if yes; then
+    echo "Not yet :("
+    sleep 5
+else
+    echo -e "skipping...\n\n"
+fi
 
 
 ###################################################################################
-                                #Dependancies  - by Harry
+                                #Dependancies
+                                # - by Harry
 
 								#Check Install dependencies
 echo ""
@@ -256,55 +301,63 @@ echo -e "gpsd & gpsd.socket started\n"
 echo "###################################"
 echo "###### Github EZ Installer ########"
 echo "###################################"
+sleep 1
 
 #get the repo we want to add to the rc.local file
-echo "Use default project repo? (https://github.com/UTS-Team-404/Main_Project_Repo.git) (y/n/c)"
+echo -e "\nDo you need to clone a repo? (Default yes) (y/n/c)"
 if yes; then
-    echo "using https://github.com/UTS-Team-404/Main_Project_Repo.git"
-    githuburl="https://github.com/UTS-Team-404/Main_Project_Repo.git"
+    echo "proceeding..."
+
+    echo "Use default project repo? (https://github.com/UTS-Team-404/Main_Project_Repo.git) (y/n/c)"
+    if yes; then
+        echo "using https://github.com/UTS-Team-404/Main_Project_Repo.git"
+        githuburl="https://github.com/UTS-Team-404/Main_Project_Repo.git"
+    else
+        echo -e '\nEnter github branch url' 
+        echo '(e.g. https://github.com/UTS-Team-404/Main_Project_Repo.git):'
+        read githuburl
+    fi
+
+
+    #grab the repo file name for later
+    repo=$(echo $githuburl | awk 'BEGIN { FS = "/" } ; { print $NF }' | cut -d "." -f1)
+    echo Repo name found: $repo
+
+    echo "Use default start file? (init.sh) (y/n/c)"
+    if yes; then
+        echo "using init.sh"
+        startfile="init.sh"
+    else
+        echo -e '\nWhat is the file to run on startup?'
+        echo "(e.g. init.sh)"
+        read startfile
+    fi
+    mysql
+    #Read file to be executed incase its different
+
+    #Decide where to clone the repo. Currently must be done manually outside of /
+    echo "Clone the reop into /$targetdir?"
+    if yes; then
+        sudo git -C /$targetdir clone $githuburl
+        echo "Making all executable at /$targetdir/$repo/*"
+        sudo chmod +x /$targetdir/$repo/*
+    else
+        echo "Clone the repo and add to rc.local manually eg. /path/to/repo/executable.file"
+        exit
+    fi
 else
-    echo -e '\nEnter github branch url' 
-    echo '(e.g. https://github.com/UTS-Team-404/Main_Project_Repo.git):'
-    read githuburl
+    echo -e "Skipping repo clone...\n\n"
 fi
-
-
-#grab the repo file name for later
-repo=$(echo $githuburl | awk 'BEGIN { FS = "/" } ; { print $NF }' | cut -d "." -f1)
-echo Repo name found: $repo
-
-echo "Use default start file? (init.sh) (y/n/c)"
-if yes; then
-    echo "using init.sh"
-    startfile="init.sh"
-else
-    echo -e '\nWhat is the file to run on startup?'
-    echo "(e.g. init.sh)"
-    read startfile
-fi
-mysql
-#Read file to be executed incase its different
-
-#Decide where to clone the repo. Currently must be done manually outside of /
-echo "Clone the reop into /$targetdir?"
-if yes; then
-    sudo git -C /$targetdir clone $githuburl
-    echo "Making all executable at /$targetdir/$repo/*"
-    sudo chmod +x /$targetdir/$repo/*
-else
-    echo "Clone the repo and add to rc.local manually eg. /path/to/repo/executable.file"
-    exit
-fi
-
 ###################################################################################
                                 #Setup rc.local
 								#(Wipe and) Set up rc.local
 echo "###################################"
 echo "#### Setup rc.local populated #####"
 echo "###################################"
+sleep 1
 
 #Temp solution to stop rerunning causing issues is to just wipte the rc.local file each time. Since its depreciated, there shouldnt be anything important in there anyway.
-echo "Wiping and repopulating rc.local..."
+echo -e "\nWiping and repopulating rc.local..."
 sudo sh -c 'echo "#!/bin/bash" > /etc/rc.local'
 sudo sh -c 'echo "sleep 1" >> /etc/rc.local'
 
@@ -329,6 +382,23 @@ sudo echo ${startfiledir// /} >> $absolutetarget
 
 
 
+echo "###################################"
+echo "####### Enable Kiosk Mode #########"
+echo "###################################"
+echo ""
+sleep 1
+
+echo "enable Kiosk mode? (will jail system on reboot) (Default yes) (y/n/c)"
+if yes; then
+    echo "Kiosking..."
+
+
+
+
+else
+    echo -e "skipping...\n"
+fi
+
 
 
 ###################################################################################
@@ -338,67 +408,70 @@ echo "###################################"
 echo "######### Wireless Setup ##########"
 echo "###################################"
 echo "Should now have $startfile run on system boot. Now setting up wifi config."
-echo "you will lose internet access after this if you do not have a third wifi adapter"
+echo "The onboard wireless interface will be configured to a hotspot, a second external adapter will be configured as a monitor mode adapter to capture traffic on"
+echo "Configure hotspot for onbaord wifi interface (wlan0)? (Yes if this is the first time being run) (y/n/c)"
+if yes; then
+    echo "proceeding..."
+								    #Set up Hotspot config
+    echo "###################################"
+    echo "########## Setup Hotspot ##########"
+    echo "###################################"
+    echo "This may need fixing/modification - (Untested)"
+
+    #Making hotspot connection on the wlan0 interface called "YFinder-Reports-Module" and set it to start on boot.
+    sudo nmcli con add type wifi ifname wlan0 con-name hotspot ssid "YFinder-Reports-Module" autoconnect yes connection.autoconnect-priority 100   
+
+    #Set hotspot to use 2.4Ghz and to enable shared IP addressing
+    sudo nmcli con modify hotspot 802-11-wireless.mode ap 802-11-wireless.band bg ipv4.method shared
+
+    #Set encryption type and password - Default to "Maxwell1"
+    sudo nmcli con modify hotspot wifi-sec.key-mgmt wpa-psk
+    sudo nmcli con modify hotspot wifi-sec.psk "Maxwell1"
+
+    #Silly loop to wait 10s for the hotspot to start properly
+    sudo nmcli con up hotspot
+    echo -n "Starting Hotspot [Y]"
+    for i in $(seq 1 10);
+    do
+        echo -n ")"
+        sleep 0.5
+        echo -n " "
+        sleep 0.5
+    done
+    echo "Ding!"
+
+    #Check if hotspot is lookin good
+    echo "Check if the Hotspot is available below:"
+    nmcli connection
+    echo "Press any key to continue (or 10s)"
+    read -s -n 1 -t 10
 
 
-								#Set up Hotspot config
-echo "###################################"
-echo "########## Setup Hotspot ##########"
-echo "###################################"
-echo "This may need fixing/modification - (Untested)"
 
-#Making hotspot connection on the wlan0 interface called "YFinder-Reports-Module" and set it to start on boot.
-sudo nmcli con add type wifi ifname wlan0 con-name hotspot ssid "YFinder-Reports-Module" autoconnect yes connection.autoconnect-priority 100   
+								    #Set up hotspot NFTables redirects
+    echo "###################################"
+    echo "## Setup Hotspot NFTables Config ##"
+    echo "###################################"
+    sudo systemctl enable nftables
+    sudo systemctl start nftables
+    sudo systemctl enable nftables.service
+    sudo systemctl start nftables.service
+    sudo nft add table nat
+    sudo nft add chain nat prerouting '{ type nat hook prerouting priority -100 ; }'
+    sudo nft add rule nat prerouting iif wlan0 tcp dport 80 redirect to 5001
+    sudo nft add rule nat prerouting iif wlan0 udp dport 53 redirect to 53
+    sudo touch /etc/NetworkManager/dnsmasq-shared.d/yfinder-webserver-redirect.conf 
+    sudo sh -c 'echo "address=/#/10.42.0.1" > /etc/NetworkManager/dnsmasq-shared.d/yfinder-webserver-redirect.conf'
 
-#Set hotspot to use 2.4Ghz and to enable shared IP addressing
-sudo nmcli con modify hotspot 802-11-wireless.mode ap 802-11-wireless.band bg ipv4.method shared
-
-#Set encryption type and password - Default to "Maxwell1"
-sudo nmcli con modify hotspot wifi-sec.key-mgmt wpa-psk
-sudo nmcli con modify hotspot wifi-sec.psk "Maxwell1"
-
-#Silly loop to wait 10s for the hotspot to start properly
-sudo nmcli con up hotspot
-echo -n "Starting Hotspot [Y]"
-for i in $(seq 1 10);
-do
-    echo -n ")"
-    sleep 0.5
-    echo -n " "
-    sleep 0.5
-done
-echo "Ding!"
-
-#Check if hotspot is lookin good
-echo "Check if the Hotspot is available below:"
-nmcli connection
-echo "Press any key to continue (or 10s)"
-read -s -n 1 -t 10
-
-
-
-								#Set up hotspot NFTables redirects
-echo "###################################"
-echo "## Setup Hotspot NFTables Config ##"
-echo "###################################"
-sudo systemctl enable nftables
-sudo systemctl start nftables
-sudo systemctl enable nftables.service
-sudo systemctl start nftables.service
-sudo nft add table nat
-sudo nft add chain nat prerouting '{ type nat hook prerouting priority -100 ; }'
-sudo nft add rule nat prerouting iif wlan0 tcp dport 80 redirect to 5001
-sudo nft add rule nat prerouting iif wlan0 udp dport 53 redirect to 53
-sudo touch /etc/NetworkManager/dnsmasq-shared.d/yfinder-webserver-redirect.conf 
-sudo sh -c 'echo "address=/#/10.42.0.1" > /etc/NetworkManager/dnsmasq-shared.d/yfinder-webserver-redirect.conf'
-
-sudo sh -c 'nft list ruleset > /etc/nftables.conf'
-echo ""
-cat /etc/nftables.conf
-echo -e '\nCheck that the above is correct'
-echo "Press any key to continue (or 10s)"
-read -s -n 1 -t 10
-
+    sudo sh -c 'nft list ruleset > /etc/nftables.conf'
+    echo ""
+    cat /etc/nftables.conf
+    echo -e '\nCheck that the above is correct'
+    echo "Press any key to continue (or 10s)"
+    read -s -n 1 -t 10
+else
+    echo -e "Skipping...\n\n"
+fi
 
 
 
@@ -406,6 +479,15 @@ read -s -n 1 -t 10
 echo "###################################"
 echo "## Setup Wifi Adapter Mon Config ##"
 echo "###################################"
+
+echo -e "\nCompleting this set will block your access to the internet once your device reboots unless you have a second wireless adapter (Third wireless interface). We reccomend completing this part and then imediatly running the init script (eventually this will be automated). Do you want to proceed? (y/n/c)"
+if yes; then
+    echo "proceeding..."
+else
+    echo "Rerun this file when you want to configure the wireless device to monitor mode (required for operation). Exiting..."
+    exit
+fi
+
 
 iw dev
 echo "check above"
