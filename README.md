@@ -6,4 +6,4 @@ Only run this script once, i dont have any sort of override or checker so be car
 
 todo:
   - incorporate custom splashscreen setup
-  - incorporate networkmanager config of managed mode on wifi adapter
+  - set up kiosk mode
