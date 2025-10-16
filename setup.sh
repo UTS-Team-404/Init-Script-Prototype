@@ -10,15 +10,18 @@
 #
 
 REQUIREMENTS_FILE="requirements.txt"
-VENV_DIR=".venv"
+VENV_DIR="/etc/.venv"
 LOGFILE="./initLogs/$(date +'%Y-%m-%d_%H:%M:%S').log"
 
 								#Set target file
 #Might not support paths beyond root directory currently (Need better pattern matching)
 absolutetarget="/etc/rc.local"
 echo "Target is set to $absolutetarget"
-targetfile=$(echo $absolutetarget | awk 'BEGIN { FS = "/" } ; { print $NF }')
-targetdir=$(echo $absolutetarget | awk 'BEGIN {FS = "/"} ; {$NF--;print}')
+targetfile="rc.local"
+targetdir="etc"
+#these are giving issues, making it modular can be done later
+#targetfile=$(echo $absolutetarget | awk 'BEGIN { FS = "/" } ; { print $NF }')
+#targetdir=$(echo $absolutetarget | awk 'BEGIN {FS = "/"} ; {$NF--;print}')
 
 ###################################################################################
                                 #Functions
@@ -128,7 +131,7 @@ echo "###################################"
 echo ""
 
 echo "system update"
-sudo apt update
+sudo apt update -y
 echo -e "Done system update\n\n"
 
 APT_PACKAGES=(
@@ -152,15 +155,15 @@ APT_PACKAGES=(
     python3-scapy
 )
 
-echo "\nInstalling required system packages..."
-apt install -y "${APT_PACKAGES[@]}" 2>&1 | tee -a "$LOGFILE"
+echo "Installing required system packages..."
+apt install -y "${APT_PACKAGES[@]}" 2>&1 # | tee -a "$LOGFILE" #Causing issues, temperarily removed
 if [ $? -eq 0 ]; then
     log "System packages installed successfully."
 else
     log "some packages failed to install."
 fi
 
-                                #PythonSetup
+                                #PythonSetup - should be done after repois cloned, in the repo dir
 echo ""
 echo "###################################"
 echo "######## Python Venv setup ########"
@@ -255,7 +258,7 @@ echo "###### Github EZ Installer ########"
 echo "###################################"
 
 #get the repo we want to add to the rc.local file
-echo "Use default project repo? (y/n/c)"
+echo "Use default project repo? (https://github.com/UTS-Team-404/Main_Project_Repo.git) (y/n/c)"
 if yes; then
     echo "using https://github.com/UTS-Team-404/Main_Project_Repo.git"
     githuburl="https://github.com/UTS-Team-404/Main_Project_Repo.git"
@@ -270,7 +273,7 @@ fi
 repo=$(echo $githuburl | awk 'BEGIN { FS = "/" } ; { print $NF }' | cut -d "." -f1)
 echo Repo name found: $repo
 
-echo "Use default start file? (y/n/c)"
+echo "Use default start file? (init.sh) (y/n/c)"
 if yes; then
     echo "using init.sh"
     startfile="init.sh"
@@ -279,7 +282,7 @@ else
     echo "(e.g. init.sh)"
     read startfile
 fi
-
+mysql
 #Read file to be executed incase its different
 
 #Decide where to clone the repo. Currently must be done manually outside of /
