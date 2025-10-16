@@ -214,12 +214,12 @@ source "$VENV_DIR/bin/activate"
 
 # --- Upgrade pip ---
 log "[*] Upgrading pip inside venv..."
-pip install --upgrade pip 2>&1 | tee -a "$LOGFILE"
+$VENV_DIR/bin/pip install --upgrade pip 2>&1 | tee -a "$LOGFILE"
 
 # --- Install requirements ---
 if [ -f "$REQUIREMENTS_FILE" ]; then
     log "[*] Installing Python dependencies from $REQUIREMENTS_FILE ..."
-    pip install -r "$REQUIREMENTS_FILE" 2>&1 | tee -a "$LOGFILE"
+    $VENV_DIR/bin/pip install -r "$REQUIREMENTS_FILE" 2>&1 | tee -a "$LOGFILE"
 else
     log "[!] No requirements.txt found — skipping dependency check."
 fi
