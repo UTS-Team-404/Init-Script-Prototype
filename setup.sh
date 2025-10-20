@@ -9,9 +9,10 @@
 #    any new hardware easily.
 #
 
-REQUIREMENTS_FILE="requirements.txt"
+REQUIREMENTS_FILE="/etc/Main_Project_Repo/requirements.txt"
 VENV_DIR="/etc/.venv"
-LOGFILE="./initLogs/$(date +'%Y-%m-%d_%H:%M:%S').log"
+LOGFILE="/etc/Main_Project_Repo/setupLogs/$(date +'%Y-%m-%d_%H:%M:%S').log"
+webserverport="5001"
 
 								#Set target file
 #Might not support paths beyond root directory currently (Need better pattern matching)
@@ -30,7 +31,7 @@ targetdir="etc"
 
 #Function to log both to file and stdout (yet to be fully implemented in here)
 log() {
-    echo -e "$@" | tee -a "$LOGFILE"
+    sudo echo -e "$@" | tee -a "$LOGFILE"
 }
 
 #Yes or No Function
@@ -48,7 +49,6 @@ yes() {
 
 ###################################################################################
                                 #Start
-log "\n===== Initialization started at $(date) =====\n"
 								#Banner and instructions
 echo "###################################"
 echo "########## WiFinder Init ##########"
@@ -83,10 +83,9 @@ echo "as root..."
 echo "Install screen drivers and rotate? (y/n/c)"
 if yes; then
     echo "Cloning..."
-    sudo git clone https://github.com/goodtft/LCD-show.git
-    chmod -R 755 LCD-show
-    cd LCD-show/
-    sudo ./LCD5-show 270
+    sudo git -C /etc clone https://github.com/goodtft/LCD-show.git
+    sudo chmod -R 755 /etc/LCD-show/*
+    sudo /etc/LCD-show/LCD5-show 270
 else
     echo -e "skipping...\n"
 fi
@@ -161,6 +160,61 @@ if yes; then
     sleep 5
 else
     echo -e "skipping...\n\n"
+fi
+
+
+###################################################################################
+                                #Main repo installer
+								#Set up easy github install and file execute
+echo "###################################"
+echo "###### Github EZ Installer ########"
+echo "###################################"
+sleep 1
+
+#get the repo we want to add to the rc.local file
+echo -e "\nDo you need to clone the repo? (Default yes) (y/n/c)"
+if yes; then
+    echo "proceeding..."
+
+    echo "Use default project repo? (https://github.com/UTS-Team-404/Main_Project_Repo.git) (y/n/c)"
+    if yes; then
+        echo "using https://github.com/UTS-Team-404/Main_Project_Repo.git"
+        githuburl="https://github.com/UTS-Team-404/Main_Project_Repo.git"
+    else
+        echo -e '\nEnter github branch url' 
+        echo '(e.g. https://github.com/UTS-Team-404/Main_Project_Repo.git):'
+        read githuburl
+    fi
+
+
+    #grab the repo file name for later
+    repo=$(echo $githuburl | awk 'BEGIN { FS = "/" } ; { print $NF }' | cut -d "." -f1)
+    echo Repo name found: $repo
+
+    echo "Use default start file? (init.sh) (y/n/c)"
+    if yes; then
+        echo "using init.sh"
+        startfile="init.sh"
+    else
+        echo -e '\nWhat is the file to run on startup?'
+        echo "(e.g. init.sh)"
+        read startfile
+    fi
+    mysql
+    #Read file to be executed incase its different
+
+    #Decide where to clone the repo. Currently must be done manually outside of /
+    echo "Clone the repo into /etc?"
+    if yes; then
+        sudo git -C /etc clone $githuburl
+        echo "Making all executable at /etc/$repo/*"
+        sudo chmod +x /$targetdir/$repo/*
+    else
+        echo "Clone the repo and add to rc.local manually eg. /path/to/repo/executable.file"
+        exit
+    fi
+else
+    echo -e "Skipping repo clone...\n\n"
 fi
 
 
@@ -295,59 +349,7 @@ sudo systemctl start gpsd
 sudo systemctl start gpsd.socket
 echo -e "gpsd & gpsd.socket started\n"
 
-###################################################################################
-                                #Main repo installer
-								#Set up easy github install and file execute
-echo "###################################"
-echo "###### Github EZ Installer ########"
-echo "###################################"
-sleep 1
 
-#get the repo we want to add to the rc.local file
-echo -e "\nDo you need to clone a repo? (Default yes) (y/n/c)"
-if yes; then
-    echo "proceeding..."
-
-    echo "Use default project repo? (https://github.com/UTS-Team-404/Main_Project_Repo.git) (y/n/c)"
-    if yes; then
-        echo "using https://github.com/UTS-Team-404/Main_Project_Repo.git"
-        githuburl="https://github.com/UTS-Team-404/Main_Project_Repo.git"
-    else
-        echo -e '\nEnter github branch url' 
-        echo '(e.g. https://github.com/UTS-Team-404/Main_Project_Repo.git):'
-        read githuburl
-    fi
-
-
-    #grab the repo file name for later
-    repo=$(echo $githuburl | awk 'BEGIN { FS = "/" } ; { print $NF }' | cut -d "." -f1)
-    echo Repo name found: $repo
-
-    echo "Use default start file? (init.sh) (y/n/c)"
-    if yes; then
-        echo "using init.sh"
-        startfile="init.sh"
-    else
-        echo -e '\nWhat is the file to run on startup?'
-        echo "(e.g. init.sh)"
-        read startfile
-    fi
-    mysql
-    #Read file to be executed incase its different
-
-    #Decide where to clone the repo. Currently must be done manually outside of /
-    echo "Clone the reop into /$targetdir?"
-    if yes; then
-        sudo git -C /$targetdir clone $githuburl
-        echo "Making all executable at /$targetdir/$repo/*"
-        sudo chmod +x /$targetdir/$repo/*
-    else
-        echo "Clone the repo and add to rc.local manually eg. /path/to/repo/executable.file"
-        exit
-    fi
-else
-    echo -e "Skipping repo clone...\n\n"
-fi
 ###################################################################################
                                 #Setup rc.local
 								#(Wipe and) Set up rc.local
@@ -375,10 +377,8 @@ echo "###################################" >> $absolutetarget
 #echo "git -c $targetdir clone $githuburl" >> $absolutetarget
 
 #This will add a line that runs the file on startup
-sudo echo "--> writing /$targetdir$repo/$startfile to $absolutetarget"
-startfiledir=$(echo "/$targetdir/$repo/$startfile")
-sudo echo ${startfiledir// /} >> $absolutetarget
-        sudo sh -c 'echo "sleep 1" >> /etc/rc.local'
+sudo echo "sudo /etc/Main_Project_Repo/init.sh"
+sudo sh -c 'echo "exit 0" >> /etc/rc.local'
 
 
 
@@ -416,10 +416,9 @@ if yes; then
     echo "###################################"
     echo "########## Setup Hotspot ##########"
     echo "###################################"
-    echo "This may need fixing/modification - (Untested)"
 
-    #Making hotspot connection on the wlan0 interface called "YFinder-Reports-Module" and set it to start on boot.
-    sudo nmcli con add type wifi ifname wlan0 con-name hotspot ssid "YFinder-Reports-Module" autoconnect yes connection.autoconnect-priority 100   
+    #Making hotspot connection on the wlan0 interface called "WiFinder-Reports-Module" and set it to start on boot.
+    sudo nmcli con add type wifi ifname wlan0 con-name hotspot ssid "WiFinder-Reports-Module" autoconnect yes connection.autoconnect-priority 100   
 
     #Set hotspot to use 2.4Ghz and to enable shared IP addressing
     sudo nmcli con modify hotspot 802-11-wireless.mode ap 802-11-wireless.band bg ipv4.method shared
@@ -441,9 +440,9 @@ if yes; then
     echo "Ding!"
 
     #Check if hotspot is lookin good
-    echo "Check if the Hotspot is available below:"
-    nmcli connection
-    echo "Press any key to continue (or 10s)"
+    echo "Hotspot should be setup, see below:"
+    sudo nmcli | cat
+    echo -e "\nPress any key to continue (or 10s)"
     read -s -n 1 -t 10
 
 
@@ -458,10 +457,10 @@ if yes; then
     sudo systemctl start nftables.service
     sudo nft add table nat
     sudo nft add chain nat prerouting '{ type nat hook prerouting priority -100 ; }'
-    sudo nft add rule nat prerouting iif wlan0 tcp dport 80 redirect to 5001
+    sudo nft add rule nat prerouting iif wlan0 tcp dport 80 redirect to $webserverport
     sudo nft add rule nat prerouting iif wlan0 udp dport 53 redirect to 53
     sudo touch /etc/NetworkManager/dnsmasq-shared.d/yfinder-webserver-redirect.conf 
-    sudo sh -c 'echo "address=/#/10.42.0.1" > /etc/NetworkManager/dnsmasq-shared.d/yfinder-webserver-redirect.conf'
+    sudo sh -c 'echo "address=/#/10.42.0.1" > /etc/NetworkManager/dnsmasq-shared.d/WiFinder-webserver-redirect.conf'
 
     sudo sh -c 'nft list ruleset > /etc/nftables.conf'
     echo ""
@@ -491,7 +490,7 @@ fi
 
 iw dev
 echo "check above"
-echo "enter device MAC for monitor mode"
+echo "enter device MAC address to set in perminent monitor mode"
 read devmac
 echo [keyfile] >> /etc/NetworkManager/NetworkManager.conf
 echo unmanaged-devices=mac:$devmac >> /etc/NetworkManager/NetworkManager.conf
