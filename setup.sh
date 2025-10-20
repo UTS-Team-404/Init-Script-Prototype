@@ -295,7 +295,7 @@ fi
 # --- Create virtual environment if missing ---
 if [ ! -d "$VENV_DIR" ]; then
     log "[*] Creating Python virtual environment in $VENV_DIR ..."
-    sudo python3 -m venv "$VENV_DIR"
+    sudo python3 -m venv "$VENV_DIR" --system-site-packages
     if [ $? -ne 0 ]; then
         log "[X] Failed to create virtual environment."
         exit 1
