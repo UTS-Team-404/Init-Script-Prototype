@@ -2,7 +2,7 @@
 #
 #         WiFinder
 #	"Wifi Tool init script"
-#	  v3.2 - 16/10/2025
+#	  v4.1 - 16/10/2025
 # Authors Aaron, Harry - Team 404
 #
 #   First run this to configure
@@ -15,14 +15,11 @@ LOGFILE="/etc/Main_Project_Repo/setupLogs/$(date +'%Y-%m-%d_%H:%M:%S').log"
 webserverport="5001"
 
 								#Set target file
-#Might not support paths beyond root directory currently (Need better pattern matching)
-absolutetarget="/etc/rc.local"
-echo "Target is set to $absolutetarget"
-targetfile="rc.local"
+#Should be changed for a static absolute path instead
+#absolutetarget="/etc/rc.local"
+#echo "Target is set to $absolutetarget"
+#targetfile="rc.local"
 targetdir="etc"
-#these are giving issues, making it modular can be done later
-#targetfile=$(echo $absolutetarget | awk 'BEGIN { FS = "/" } ; { print $NF }')
-#targetdir=$(echo $absolutetarget | awk 'BEGIN {FS = "/"} ; {$NF--;print}')
 
 ###################################################################################
                                 #Functions
@@ -52,14 +49,11 @@ echo "###################################"
 echo "########## WiFinder Init ##########"
 echo "###################################"
 echo ""
-echo "This file must be run as root and should really only be run once.
-If you need to rerun for whatever reason, first run the init-wiper.sh script first and then rerun this. Also should probably update before running this. Python3 v3.8 required."
+echo "This file must be run as root. Python3 v3.8 required."
 
-echo "Variables set: (default [/etc/rc.local] [etc] [rc.local] )"
-echo $absolutetarget
-echo $targetfile
+echo "directory set: (Default /[etc])"
 echo $targetdir
-echo "Run? (y/n/c)"
+echo "Run setup? (y/n/c)"
 if yes; then
     echo "running..."
 else
@@ -94,28 +88,25 @@ fi
 								#Check rc.local
 #/etc/rc.local is now depricated and can either be enabled in systemd, or can instead be run as a service which should be what this is upgraded to in the future.
 echo "###################################"
-echo "##### rc.local service check ######"
+echo "###### lxsession autostart  #######"
 echo "###################################"
 echo ""
 sleep 1
 
-echo "Are you using rc.local as autostart service? (y/n/c) (default yes)"
+echo "Configure autostart? (y/n/c) (default yes)"
 if yes; then
-    if [ ! -e /ect/rc.local ]; then
-        echo "rc.local file not found. Check if rc-local.service is enabled:"
-        sudo systemctl is-enabled rc-local.service
-        sudo echo "Adding rc.local..."
-        sudo touch /etc/rc.local
-        sudo sh -c 'echo "#!/bin/bash" > /etc/rc.local'
-        sudo sh -c 'echo "sleep 1" >> /etc/rc.local'
-        sudo chmod +x /etc/rc.local
-        sudo echo "enabling rc.local.service..."
-        sudo systemctl enable rc-local.service
+    if [ ! -e /etc/xdg/lxsession/LXDE-pi/autostart ]; then
+        echo "No autostart file present, please configure manually..."
+        exit 1
+    else
+        echo "Writing autostart..."
+        sudo echo "@bash /etc/Main_Project_Repo/init.sh" >> /etc/xdg/lxsession/LXDE-pi/autostart
+        echo "You will need to set"
+        sudo raspi-config
+        echo -e "done.\n" 
     fi
 else
-    echo "Skipping rc.local check. ensure that you have changed the absolute target in this script to the desired output file."
-    echo "Press any key to confirm it has been changed and continue. Or cancel and try again."
-    read -s -n 1
+    echo -e "skipping...\n"
 fi
 
 echo "###################################"
@@ -137,11 +128,13 @@ if yes; then
     sudo systemctl mask rpi-eeprom-update
 
     echo "stopping bluetooth"
-    sudo echo "dtoverlay=disable-bt" >> /boot/config.txt
-    echo "killing bluetooth sercices"
+    sudo sh -c 'echo "dtoverlay=disable-bt" >> /boot/config.txt'
+    echo "killing bluetooth services"
     sudo systemctl disable hciuart.service
     sudo systemctl disable bluealsa.service
     sudo systemctl disable bluetooth.service
+    echo "disabling rc.local services"
+    sudo systemctl disable rc-local.service
     echo -e "all done \n\n"
 else
     echo -e "skipping...\n\n"
@@ -209,7 +202,7 @@ if yes; then
         echo "Making all executable at /etc/$repo/*"
         sudo chmod +x /$targetdir/$repo/*
     else
-        echo "Clone the repo and add to rc.local manually eg. /path/to/repo/executable.file"
+        echo "Clone the repo manually."
         exit
     fi
 else
@@ -244,6 +237,7 @@ APT_PACKAGES=(
     libcairo2-dev
     pkg-config
     python3-dev
+    python3-full
     libgtk-3-dev
     build-essential
     libwebkit2gtk-4.1-dev
@@ -317,12 +311,12 @@ source "$VENV_DIR/bin/activate"
 
 # --- Upgrade pip ---
 log "[*] Upgrading pip inside venv..."
-sudo $VENV_DIR/bin/pip install --upgrade pip 2>&1 | tee -a "$LOGFILE"
+sudo pip3 --python $VENV_DIR/bin/python3 install --upgrade pip 2>&1 | tee -a "$LOGFILE"
 
 # --- Install requirements ---
 if [ -f "$REQUIREMENTS_FILE" ]; then
     log "[*] Installing Python dependencies from $REQUIREMENTS_FILE ..."
-    sudo $VENV_DIR/bin/pip install -r "$REQUIREMENTS_FILE" 2>&1 | tee -a "$LOGFILE"
+    sudo pip3 --python $VENV_DIR/bin/python3 install -r "$REQUIREMENTS_FILE" 2>&1 | tee -a "$LOGFILE"
 else
     log "[!] No requirements.txt found — skipping dependency check."
 fi
@@ -357,34 +351,6 @@ echo -e "gpsd & gpsd.socket started\n"
 ###################################################################################
                                 #Setup rc.local
 								#(Wipe and) Set up rc.local
-echo "###################################"
-echo "#### Setup rc.local populated #####"
-echo "###################################"
-sleep 1
-
-#Temp solution to stop rerunning causing issues is to just wipte the rc.local file each time. Since its depreciated, there shouldnt be anything important in there anyway.
-echo -e "\nWiping and repopulating rc.local..."
-sudo sh -c 'echo "#!/bin/bash" > /etc/rc.local'
-sudo sh -c 'echo "sleep 1" >> /etc/rc.local'
-
-#easy getaround for systemctl timing issues. Could be done instead with a timer service but this is far easier
-echo "sudo systemctl restart nftables.service" >> /etc/rc.local
-
-#This will make an identifier for where our added lines go incase we need to delete or edit them.
-echo ""
-echo "###################################" >> $absolutetarget
-echo "#Team 404 WiFinder autostart webUI#" >> $absolutetarget
-echo "###################################" >> $absolutetarget
-
-#This will add a line that updates from the github branch each time the device turns on. We have decided not to implement this as currently we are not having the device connect to the internet, making it pointless. But could be added in the future?
-#echo -e '\n--> writing git -c $targetdir clone $githuburl to $absolutetarget'
-#echo "git -c $targetdir clone $githuburl" >> $absolutetarget
-
-#This will add a line that runs the file on startup
-sudo echo "sudo /etc/Main_Project_Repo/init.sh"
-sudo sh -c 'echo "exit 0" >> /etc/rc.local'
-
-
 
 echo "###################################"
 echo "####### Enable Kiosk Mode #########"
@@ -394,11 +360,7 @@ sleep 1
 
 echo "enable Kiosk mode? (will jail system on reboot) (Default yes) (y/n/c)"
 if yes; then
-    echo "Kiosking...(yet to be done)"
-
-
-
-
+    echo "Currently cannot run kioskmode :( (requires a webserver instead of desktop html viewer. Could be implemented in the future?)"
 else
     echo -e "skipping...\n"
 fi
