@@ -80,21 +80,12 @@ echo "as root..."
 #clones screen setup to any current directory and then runs it. We only run this once so thats fine.
 echo "Install screen drivers and rotate? (y/n/c)"
 if yes; then
-    echo "First time install? (Installs both the touch drivers and rotates screen, otherwise just rotates screen.) (y/n/c)"
-    if yes; then
-        sudo rm -rf /etc/LCD-show
-        echo "Cloning..."
-        sudo git -C /etc clone https://github.com/goodtft/LCD-show.git
-        sudo chmod -R 755 /etc/LCD-show
-        sudo /etc/LCD-show/LCD5-show 270
-    else
-        echo "Just rotating the screen then..."
-        if [ ! -e /etc/LCD-show ]; then
-            echo "Drivers not installed, please choose the first time install"
-            exit 1 
-        fi
-        sudo /etc/LCD-show/rotate.sh 270
-    fi
+    sudo rm -rf /etc/LCD-show
+    echo "Cloning..."
+    sudo git -C /etc clone https://github.com/goodtft/LCD-show.git
+    sudo chmod -R 755 /etc/LCD-show
+    cd /etc/LCD-show/
+    sudo ./LCD5-show 270
 else
     echo -e "skipping...\n"
 fi
@@ -151,7 +142,7 @@ if yes; then
     sudo systemctl disable hciuart.service
     sudo systemctl disable bluealsa.service
     sudo systemctl disable bluetooth.service
-    sudo -e "all done\n\n"
+    echo -e "all done \n\n"
 else
     echo -e "skipping...\n\n"
 fi
@@ -209,7 +200,6 @@ if yes; then
         echo "(e.g. init.sh)"
         read startfile
     fi
-    mysql
     #Read file to be executed incase its different
 
     #Decide where to clone the repo. Currently must be done manually outside of /
@@ -234,7 +224,7 @@ fi
 								#Check Install dependencies
 
 #clear or make logfile
-: > "$LOGFILE"
+sudo echo "" > "$LOGFILE"
 
 echo ""
 echo "###################################"
@@ -265,6 +255,7 @@ APT_PACKAGES=(
     gpsd-clients
     python3-gps
     python3-scapy
+    python3.11-venv
 )
 
 echo "Installing required system packages..."
