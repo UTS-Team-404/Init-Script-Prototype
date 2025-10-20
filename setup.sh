@@ -26,8 +26,6 @@ targetdir="etc"
 
 ###################################################################################
                                 #Functions
-#clear or make logfile
-: > "$LOGFILE"
 
 #Function to log both to file and stdout (yet to be fully implemented in here)
 log() {
@@ -82,10 +80,21 @@ echo "as root..."
 #clones screen setup to any current directory and then runs it. We only run this once so thats fine.
 echo "Install screen drivers and rotate? (y/n/c)"
 if yes; then
-    echo "Cloning..."
-    sudo git -C /etc clone https://github.com/goodtft/LCD-show.git
-    sudo chmod -R 755 /etc/LCD-show/*
-    sudo /etc/LCD-show/LCD5-show 270
+    echo "First time install? (Installs both the touch drivers and rotates screen, otherwise just rotates screen.) (y/n/c)"
+    if yes; then
+        sudo rm -rf /etc/LCD-show
+        echo "Cloning..."
+        sudo git -C /etc clone https://github.com/goodtft/LCD-show.git
+        sudo chmod -R 755 /etc/LCD-show
+        sudo /etc/LCD-show/LCD5-show 270
+    else
+        echo "Just rotating the screen then..."
+        if [ ! -e /etc/LCD-show ]; then
+            echo "Drivers not installed, please choose the first time install"
+            exit 1 
+        fi
+        sudo /etc/LCD-show/rotate.sh 270
+    fi
 else
     echo -e "skipping...\n"
 fi
@@ -223,6 +232,10 @@ fi
                                 # - by Harry
 
 								#Check Install dependencies
+
+#clear or make logfile
+: > "$LOGFILE"
+
 echo ""
 echo "###################################"
 echo "######## Main Dependancies ########"
@@ -252,7 +265,6 @@ APT_PACKAGES=(
     gpsd-clients
     python3-gps
     python3-scapy
-	python3.11-venv
 )
 
 echo "Installing required system packages..."
@@ -298,7 +310,7 @@ fi
 # --- Create virtual environment if missing ---
 if [ ! -d "$VENV_DIR" ]; then
     log "[*] Creating Python virtual environment in $VENV_DIR ..."
-    python3 -m venv "$VENV_DIR"
+    sudo python3 -m venv "$VENV_DIR"
     if [ $? -ne 0 ]; then
         log "[X] Failed to create virtual environment."
         exit 1
@@ -314,12 +326,12 @@ source "$VENV_DIR/bin/activate"
 
 # --- Upgrade pip ---
 log "[*] Upgrading pip inside venv..."
-$VENV_DIR/bin/pip install --upgrade pip 2>&1 | tee -a "$LOGFILE"
+sudo $VENV_DIR/bin/pip install --upgrade pip 2>&1 | tee -a "$LOGFILE"
 
 # --- Install requirements ---
 if [ -f "$REQUIREMENTS_FILE" ]; then
     log "[*] Installing Python dependencies from $REQUIREMENTS_FILE ..."
-    $VENV_DIR/bin/pip install -r "$REQUIREMENTS_FILE" 2>&1 | tee -a "$LOGFILE"
+    sudo $VENV_DIR/bin/pip install -r "$REQUIREMENTS_FILE" 2>&1 | tee -a "$LOGFILE"
 else
     log "[!] No requirements.txt found — skipping dependency check."
 fi
@@ -391,7 +403,7 @@ sleep 1
 
 echo "enable Kiosk mode? (will jail system on reboot) (Default yes) (y/n/c)"
 if yes; then
-    echo "Kiosking..."
+    echo "Kiosking...(yet to be done)"
 
 
 
