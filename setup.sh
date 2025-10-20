@@ -252,6 +252,7 @@ APT_PACKAGES=(
     gpsd-clients
     python3-gps
     python3-scapy
+	python3.11-venv
 )
 
 echo "Installing required system packages..."
