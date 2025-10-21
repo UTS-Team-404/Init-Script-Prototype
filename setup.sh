@@ -88,27 +88,30 @@ fi
 								#Check rc.local
 #/etc/rc.local is now depricated and can either be enabled in systemd, or can instead be run as a service which should be what this is upgraded to in the future.
 echo "###################################"
-echo "###### lxsession autostart  #######"
+echo "######## Autostart Setup ##########"
 echo "###################################"
 echo ""
 sleep 1
 
 echo "Configure autostart? (y/n/c) (default yes)"
 if yes; then
-    if [ ! -e /etc/xdg/lxsession/LXDE-pi/autostart ]; then
-        echo "No autostart file present, please configure manually..."
-        exit 1
-    else
-        echo "Writing autostart..."
-        sudo echo "@bash /etc/Main_Project_Repo/init.sh" >> /etc/xdg/lxsession/LXDE-pi/autostart
-        echo "You will need to set"
-        sudo raspi-config
-        echo -e "done.\n" 
-    fi
+    echo "Making /home/pi/.config/autostart folder..."
+    sudo mkdir /home/pi/.config/autostart
+    echo "Making .desktop file..."
+    touch /home/pi/.config/autostart/WiFinder.desktop
+    echo "" > /home/pi/.config/autostart/WiFinder.desktop
+    echo "populating .desktop file..."
+    echo "[Desktop Entry]" >> /home/pi/.config/autostart/WiFinder.desktop
+    echo "Type=Application" >> /home/pi/.config/autostart/WiFinder.desktop
+    echo "Name=WiFinder" >> /home/pi/.config/autostart/WiFinder.desktop
+    echo "Exec=sh -c 'sudo /etc/Main_Project_Repo/init.sh'" >> /home/pi/.config/autostart/WiFinder.desktop
+    echo -e "Done! Now Populated with:\n"
+    cat /home/pi/.config/autostart/WiFinder.desktop
 else
     echo -e "skipping...\n"
 fi
 
+echo ""
 echo "###################################"
 echo "####### boot speed increase #######"
 echo "###################################"
@@ -133,7 +136,8 @@ if yes; then
     sudo systemctl disable hciuart.service
     sudo systemctl disable bluealsa.service
     sudo systemctl disable bluetooth.service
-    echo "disabling rc.local services"
+    echo "stopping and disabling rc.local services"
+    sudo systemctl stop rc-local.service
     sudo systemctl disable rc-local.service
     echo -e "all done \n\n"
 else
