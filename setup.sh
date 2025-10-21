@@ -166,8 +166,10 @@ sleep 1
 
 echo "Replace the boot and splash screen images with way cooler ones? (heck yea) (y/n/c)"
 if yes; then
-    echo "Not yet :("
-    sleep 5
+    echo "replacing /usr/share/plymouth/themes/pix/splash.png"
+    sudo rm -f /usr/share/plymouth/themes/pix/splash.png
+    sudo mv /etc/Main_Project_Repo/splash.png /usr/share/plymouth/themes/pix/splash.png
+    echo -e "Done! \n"
 else
     echo -e "skipping...\n\n"
 fi
