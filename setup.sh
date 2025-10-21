@@ -87,8 +87,8 @@ else
 fi
 
 
-								#Check rc.local
-#/etc/rc.local is now depricated and can either be enabled in systemd, or can instead be run as a service which should be what this is upgraded to in the future.
+								#Autostart and Desktop disable
+#This will make a .desktop autorun to run our script each bot and will disable the desktop rendering so that the user cannot do anything but wait for our app to run and cannot escape once it does
 echo "###################################"
 echo "######## Autostart Setup ##########"
 echo "###################################"
@@ -97,18 +97,20 @@ sleep 1
 
 echo "Configure autostart? (y/n/c) (default yes)"
 if yes; then
-    echo "Making /home/pi/.config/autostart folder..."
-    sudo mkdir /home/pi/.config/autostart
+    echo "Enter the base user: (default: pi) (Needs to have autologin enabled [is by default])"    
+    read currentuser
+    echo "Making /home/$currentuser/.config/autostart folder..."
+    sudo mkdir /home/$currentuser/.config/autostart
     echo "Making .desktop file..."
-    touch /home/pi/.config/autostart/WiFinder.desktop
-    echo "" > /home/pi/.config/autostart/WiFinder.desktop
+    touch /home/$currentuser/.config/autostart/WiFinder.desktop
+    echo "" > /home/$currentuser/.config/autostart/WiFinder.desktop
     echo "populating .desktop file..."
-    echo "[Desktop Entry]" >> /home/pi/.config/autostart/WiFinder.desktop
-    echo "Type=Application" >> /home/pi/.config/autostart/WiFinder.desktop
-    echo "Name=WiFinder" >> /home/pi/.config/autostart/WiFinder.desktop
-    echo "Exec=sh -c 'sudo /etc/Main_Project_Repo/init.sh'" >> /home/pi/.config/autostart/WiFinder.desktop
+    echo "[Desktop Entry]" >> /home/$currentuser/.config/autostart/WiFinder.desktop
+    echo "Type=Application" >> /home/$currentuser/.config/autostart/WiFinder.desktop
+    echo "Name=WiFinder" >> /home/$currentuser/.config/autostart/WiFinder.desktop
+    echo "Exec=sh -c 'sudo /etc/Main_Project_Repo/init.sh'" >> /home/$currentuser/.config/autostart/WiFinder.desktop
     echo -e "Done! Now Populated with:\n"
-    cat /home/pi/.config/autostart/WiFinder.desktop
+    cat /home/$currentuser/.config/autostart/WiFinder.desktop
     
 
     echo "Disable desktop environment? (y/n/c) (Will disable debugging) (default yes)"
