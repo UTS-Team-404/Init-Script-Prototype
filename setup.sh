@@ -72,13 +72,15 @@ echo "as root..."
                                 #FIRST SETUP
                                 #Screen setup (will reboot)
 #clones screen setup to any current directory and then runs it. We only run this once so thats fine.
-echo "Install screen drivers and rotate? (y/n/c)"
+echo "Install screen drivers and rotate? (Only needs to be run once, then skip) (y/n/c)"
 if yes; then
     sudo rm -rf /etc/LCD-show
     echo "Cloning..."
     sudo git -C /etc clone https://github.com/goodtft/LCD-show.git
     sudo chmod -R 755 /etc/LCD-show
     cd /etc/LCD-show/
+    echo "This will install and reboot, you will then have to run this script again to continue setup (or 10s)."
+    read -s -n 1 -t 10
     sudo ./LCD5-show 270
 else
     echo -e "skipping...\n"
@@ -107,6 +109,15 @@ if yes; then
     echo "Exec=sh -c 'sudo /etc/Main_Project_Repo/init.sh'" >> /home/pi/.config/autostart/WiFinder.desktop
     echo -e "Done! Now Populated with:\n"
     cat /home/pi/.config/autostart/WiFinder.desktop
+    
+
+    echo "Disable desktop environment? (y/n/c) (Will disable debugging) (default yes)"
+    if yes; then
+        echo "Disabling desktop environment"
+        echo "" > /etc/xdg/lxsession/LXDE-pi/autostart
+    else
+        echo -e "keeping desktop enabled..."
+    fi
 else
     echo -e "skipping...\n"
 fi
