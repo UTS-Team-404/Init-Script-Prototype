@@ -108,7 +108,7 @@ if yes; then
     echo "[Desktop Entry]" >> /home/$currentuser/.config/autostart/WiFinder.desktop
     echo "Type=Application" >> /home/$currentuser/.config/autostart/WiFinder.desktop
     echo "Name=WiFinder" >> /home/$currentuser/.config/autostart/WiFinder.desktop
-    echo "Exec=sh -c 'sudo/etc/Main_Project_Repo/init.sh'" >> /home/$currentuser/.config/autostart/WiFinder.desktop
+    echo "Exec=sh -c 'sudo /etc/Main_Project_Repo/init.sh'" >> /home/$currentuser/.config/autostart/WiFinder.desktop
     echo -e "Done! Now Populated with:\n"
     cat /home/$currentuser/.config/autostart/WiFinder.desktop
     
