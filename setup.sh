@@ -364,25 +364,6 @@ echo -e "gpsd & gpsd.socket started\n"
 
 
 ###################################################################################
-                                #Setup rc.local
-								#(Wipe and) Set up rc.local
-
-echo "###################################"
-echo "####### Enable Kiosk Mode #########"
-echo "###################################"
-echo ""
-sleep 1
-
-echo "enable Kiosk mode? (will jail system on reboot) (Default yes) (y/n/c)"
-if yes; then
-    echo "Currently cannot run kioskmode :( (requires a webserver instead of desktop html viewer. Could be implemented in the future?)"
-else
-    echo -e "skipping...\n"
-fi
-
-
-
-###################################################################################
                                 #Wireless Setup
 								#Wireless Warning
 echo "###################################"
